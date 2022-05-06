@@ -1,0 +1,16 @@
+{
+  "name": "s3-uploader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Me, Myself, and I",
+  "license": "MIT-0",
+  "devDependencies": {
+    "aws-sdk": "^2.1129.0",
+    "serverless-add-api-key": "^4.2.1"
+  }
+}

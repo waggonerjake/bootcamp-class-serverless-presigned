@@ -1,0 +1,83 @@
+
+service: ${env:service, 'demo-app'} 
+frameworkVersion: '2'
+
+plugins:
+  - serverless-add-api-key
+
+custom:
+  apiKeys:
+    - name: myDemoKey
+
+package:
+  patterns:
+    - '!./**/*'
+    - 'app.js'
+
+provider:
+  name: aws 
+  runtime: nodejs14.x 
+  lambdaHashingVersion: 20201221 
+  deploymentBucket: 
+    blockPublicAccess: true 
+    serverSideEncryption: AES256 
+  stage: ${opt:stage, 'dev'} 
+  region: ${opt:region, 'us-east-1'} 
+  timeout: 30 
+  iamRoleStatements: 
+    - Effect: 'Allow'
+      Action:
+        - s3:PutObject 
+        - s3:PutObjectACL 
+      Resource:
+        - arn:aws:s3:::${env:bucketname}/* 
+        - arn:aws:s3:::${env:bucketname} 
+
+functions: 
+  s3UploadURL: 
+    handler: app.handler 
+    environment: 
+      BUCKET_NAME: ${env:bucketname} 
+    events: 
+      - http: 
+          cors: true 
+          method: get 
+          path: 'uploadURL' 
+          private: true 
+          request: 
+            parameters: 
+              querystrings: 
+                filename: true 
+
+resources:
+  Resources: 
+    presignedURLBucket: 
+      Type: AWS::S3::Bucket 
+      DeletionPolicy: Delete 
+      Properties:
+        BucketName: !Sub "${env:bucketname}" 
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256 
+        PublicAccessBlockConfiguration: 
+          BlockPublicAcls: true
+          IgnorePublicAcls: true
+          BlockPublicPolicy: true
+          RestrictPublicBuckets: true
+    BucketPolicy: 
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: presignedURLBucket 
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: "AllowSSLRequestsOnly"
+              Effect: Deny 
+              Principal: "*"
+              Action: s3:*
+              Resource: !Sub "arn:aws:s3:::${env:bucketname}"
+              Condition:
+                Bool:
+                  "aws:SecureTransport": "false"

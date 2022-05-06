@@ -1,0 +1,94 @@
+#Name of the entire serverless project. This controls things such as resource naming
+service: ${env:service, 'demo-app'} #The syntax here is saying if the service environment variable isnt set, then default to demo-app
+frameworkVersion: '2'
+
+#Serverless framework has plugins available that add extra functionality. This plugin here allow us to add API keys to our gateway
+#so they are protected
+plugins:
+  - serverless-add-api-key
+
+#This is used in tandem with the plugin above. This is what creates the API key (called MyDemoKey) which is passed in the
+#x-api-key header when making a request to this API.
+custom:
+  apiKeys:
+    - name: myDemoKey
+
+#This allows us to exclude unneeded files from our deployment, such as the node_modules folder. There are other ways to do this
+#such as using something like Webpack.
+package:
+  patterns:
+    #Exclude everything at first so we can just include what we want
+    - '!./**/*'
+    - 'app.js'
+
+#The provider is the target you be deploying to, such as AWS or Azure.
+provider:
+  name: aws #Here we specify we want to deploy to AWS
+  runtime: nodejs14.x #We want to use the NodeJS 14.x runtime for our lambda functions.
+  lambdaHashingVersion: 20201221 #Version for hashing alg used for packaging the serverless code
+  deploymentBucket: #Serverless deploys the code using an S3 bucket. Once the code has been deployed, the bucket can be deleted.
+    blockPublicAccess: true #Makes the deployment bucket private
+    serverSideEncryption: AES256 #Makes the deployment bucket have server side encryption
+  stage: ${opt:stage, 'dev'} #Sets out stage using the --stage option when deploying or defaults to dev
+  region: ${opt:region, 'us-east-1'} #Sets our region using the --region option when deploying or defaults to us-east-1
+  timeout: 30 #Sets the global timeout for ALL lambda functions in this serverless project
+  iamRoleStatements: #Creates inline policies for the execution role attached to the lambda functions
+    #This policy allows the lambda the least privilege write commands for the bucket AND for the objects in the bucket. This
+    #is needed for giving the consumer of the pre-signed URL the ability to upload a file.
+    - Effect: 'Allow'
+      Action:
+        - s3:PutObject #Place an object in the bucket
+        - s3:PutObjectACL #Add an access control list to that object
+      Resource:
+        - arn:aws:s3:::${env:bucketname}/* #For all the objects
+        - arn:aws:s3:::${env:bucketname} #For the bucket itself
+
+functions: #We define our lambda functions under the 'functions' block here
+  s3UploadURL: #The name of the lambda function resource we are creating
+    handler: app.handler #Path to the entry point function. Could also be path/to/folder.app.handler.
+    environment: #Sets function specific environment variables
+      BUCKET_NAME: ${env:bucketname} #Sets the BUCKET_NAME environment variable using the local env var named bucketname.
+    events: #Attaches events to the function to invoke it, such as an API gateway or S3 event.
+      - http: #Attaching a REST API Gateway to this lambda function
+          cors: true #Allow CORS
+          method: get #Is called with a GET method as opposed to a POST or PUT
+          path: 'uploadURL' #The route used to call this API. Like `www.example.com/uploadURL`
+          private: true #Means we need an API key to access this resource
+          request: #Sets request properties on this API gateway for this resource.
+            parameters: #Allows us to set certain properties, such as what query parameters or headers are allowed
+              querystrings: #Since we have a GET request, we are want to enforce the query parameters
+                filename: true #Means the 'filename' parameter is REQUIRED for a request to be valid
+
+#This resources block allows to specify raw CloudFormation resources within our serverless file to keep coupled resources together
+resources:
+  Resources: #start of cloudformation syntax
+    presignedURLBucket: #Name of s3 bucket resource
+      Type: AWS::S3::Bucket #Type of resource we want to create, in this case an S3 bucket
+      DeletionPolicy: Delete #How to handle the S3 bucket when the stack is deleted (delete it in our case)
+      Properties:
+        BucketName: !Sub "${env:bucketname}" #Actual name of the S3 bucket
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256 #Add AES256 server side encryption to all objects by default
+        PublicAccessBlockConfiguration: #Block ALL public access (this bucket and its objects are totally private)
+          BlockPublicAcls: true
+          IgnorePublicAcls: true
+          BlockPublicPolicy: true
+          RestrictPublicBuckets: true
+    BucketPolicy: #States who can use this bucket and what actions they can perform
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: presignedURLBucket #Using an intrinsic function to reference our S3 bucket resource above
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: "AllowSSLRequestsOnly"
+              Effect: Deny #Explicitly deny any operations from ANYONE on our bucket that are not use SSL
+              Principal: "*"
+              Action: s3:*
+              Resource: !Sub "arn:aws:s3:::${env:bucketname}"
+              Condition:
+                Bool:
+                  "aws:SecureTransport": "false"
