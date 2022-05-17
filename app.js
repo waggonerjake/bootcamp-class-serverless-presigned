@@ -26,3 +26,5 @@ exports.handler = async (event) => {
       validFor: `${TTL} seconds`
   })}
 }
+
+exports.s3Handler = s3;

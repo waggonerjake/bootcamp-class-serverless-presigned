@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest tests/unittests"
   },
   "keywords": [],
   "author": "Me, Myself, and I",
   "license": "MIT-0",
   "devDependencies": {
+    "@types/jest": "^27.5.0",
     "aws-sdk": "^2.1129.0",
+    "jest": "^28.1.0",
     "serverless-add-api-key": "^4.2.1"
   }
 }
