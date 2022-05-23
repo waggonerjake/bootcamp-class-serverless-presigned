@@ -18,8 +18,6 @@ jobs:
 
   deploy-feature:
     environment: dev
-    # this stage is triggered only for feature branches (feature*),
-    # which will build the stack and deploy to a stack named with branch name.
     if: startsWith(github.ref, 'refs/heads/feature')
     needs: [test]
     runs-on: ubuntu-latest
@@ -28,7 +26,7 @@ jobs:
       contents: read
     env:
       stage: dev
-      service: ${{github.head_ref}}
+      service: ${{github.ref_name}}
     steps:
       - uses: actions/checkout@v2
 
@@ -40,7 +38,6 @@ jobs:
           role-session-name: feature-deployment
 
       - run: npm ci
-      - run: echo $service
       - run: npm run deploy
 
   deploy-dev:
