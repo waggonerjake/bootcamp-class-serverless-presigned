@@ -13,6 +13,7 @@
     "@types/jest": "^27.5.0",
     "aws-sdk": "^2.1129.0",
     "jest": "^28.1.0",
+    "serverless": "^3.18.1",
     "serverless-add-api-key": "^4.2.1"
   }
 }

@@ -68,7 +68,7 @@ jobs:
           role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-FZH08AJ4J25N
           role-session-name: dev-deployment
 
-      - run: npm install -g serverless
+      - run: npm ci
       - run: sls deploy --stage dev
 
   # integration-test:
