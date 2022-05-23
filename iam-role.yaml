@@ -17,6 +17,8 @@ Resources:
   Role:
     Type: AWS::IAM::Role
     Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow

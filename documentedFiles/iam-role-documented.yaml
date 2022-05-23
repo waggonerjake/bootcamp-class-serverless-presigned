@@ -1,0 +1,47 @@
+Parameters: #Variable values you can pass into cloudformation templates
+  GitHubOrg: #The name of the Github username or organization the repository belongs to
+    Type: String #Expects a string
+  RepositoryName: #The name of the repository the actions pipeline is apart of
+    Type: String
+  OIDCProviderArn: #The ARN of the OIDC provider to use as the trust principal in the IAM role
+    Description: Arn for the GitHub OIDC Provider.
+    Default: "" #If not given, it will default to empty
+    Type: String
+
+Conditions: #Allows us to conditionally create resources
+  CreateOIDCProvider: !Equals #Intrinsic function used to tell if two values are equivalent
+    - !Ref OIDCProviderArn #Intrinsic function to get the value of the OIDCProviderArn parameter
+    - "" #Essentially, the CreateOIDCProvider will be true if OIDCProviderArn is an empty string
+
+Resources: #This is where all the resources we make will be housed
+  Role: #Logical ID of the resource that is being created
+    Type: AWS::IAM::Role #Type of resource that is being created
+    Properties: #List of properties the resource will have, each resource has their own set of properties
+      ManagedPolicyArns: #Managed Policy we want to attach to this role, in this case the policy is managed by AWS
+        - arn:aws:iam::aws:policy/AdministratorAccess #The admin policy is attached to this role
+      AssumeRolePolicyDocument: #The trust policy that is associated with this role
+        Statement: #The trust policy statement lives under here
+          - Effect: Allow #Allow x to do y
+            Action: sts:AssumeRoleWithWebIdentity #This gives temporary credentials
+            Principal: #Who can have this role
+              Federated: !If #Conditional that uses the condition created above, either references the resource made below or the parameter based in
+                - CreateOIDCProvider
+                - !Ref GithubOidc
+                - !Ref OIDCProviderArn
+            Condition: #Condition that puts limits on the policy
+              StringLike: #Saying the string below needs to match a pattern
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${RepositoryName}:* #Uses an intrinsic function to interpolate the string with the parameter values passed in. This ensures that only your repo can access this role.
+
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider #Create an OIDC provider
+    Condition: CreateOIDCProvider #Only make this if the condition above is true
+    Properties:
+      Url: https://token.actions.githubusercontent.com #URL that is associated with the OIDC provider 
+      ClientIdList: #Client IDs associated with this OIDC provider 
+        - sts.amazonaws.com
+      ThumbprintList: #Certificate thumbprints associated with this OIDC provider
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+Outputs: #Allows us to output specific values that can be referenced by other templates (or even serverless!)
+  Role: #Key of the output
+    Value: !GetAtt Role.Arn #Value of the output 

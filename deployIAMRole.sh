@@ -1,0 +1,1 @@
+aws cloudformation deploy --template-file iam-role.yaml --stack-name github-actions-role --region us-east-1 --parameter-overrides GitHubOrg="waggonerjake" RepositoryName="bootcamp-class-serverless-presigned" --capabilities CAPABILITY_IAM

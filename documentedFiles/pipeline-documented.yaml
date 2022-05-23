@@ -1,0 +1,87 @@
+name: Pipeline #Name of the actions pipeline
+
+on: #How this pipeline will be invoked
+  push: #Invoke the pipeline on a 'push' to Github
+    branches: #What branches we want to focus on, in this case we only care about master and any branch that starts with feature
+      - 'master'
+      - 'feature**' #Uses glob patterns to match
+env: #Set GLOBAL environment variables
+  bucketname: jwaggon-bootcamp-2022-bucket #Set the 'bucketname' env var
+
+jobs: #Jobs are where all the work is actually done
+  test: #1st job is called 'test', this is where our Unit tests will run
+    runs-on: ubuntu-latest #What OS to run the job on
+    steps: #What things need to happen within this job
+      - uses: actions/checkout@v2 #Checks out the repo so it can be ran against and deployed
+      - run: npm ci #Run an npm command to install dependencies
+      - run: npm test #Run an npm script to run the unit tests
+
+  deploy-feature: #Job that will deploy the feature branch to AWS
+    environment: dev #Use the github environment 'dev'
+    if: startsWith(github.ref, 'refs/heads/feature') #Only runs on branches that start with 'feature'
+    needs: [test] #The 'test' job MUST run successfully before this job can be ran
+    runs-on: ubuntu-latest
+    permissions: #Set permissions for this job
+      id-token: write #Needed to generate OIDC token
+      contents: read #Needed for simply cloning and building
+    env: #Setting JOB specific env vars
+      stage: dev #Set the stage env var that will be used for when we deploy
+      service: ${{github.ref_name}} #Sets the env var that changes the name of our service in the serverless.yaml since we are deploying a feature
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Assume the testing pipeline user role #Step to assume the role created by cloudformation that allows us to deploy and provision our resources
+        uses: aws-actions/configure-aws-credentials@v1 #Allows us to use an action to give us our AWS credentials to deploy
+        with:
+          aws-region: us-east-1 #Region to deploy to
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-FZH08AJ4J25N #The ARN of the role we created in our cloudformation template
+          role-session-name: feature-deployment #The session name when we are deploying
+
+      - run: npm ci
+      - run: npm run deploy #Run an npm script to deploy our code to AWS (uses the stage and service env vars)
+
+  deploy-dev:
+    environment: dev
+    if: github.ref == 'refs/heads/master' #This ONLY runs on the master branch
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      stage: dev
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Assume the testing pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-FZH08AJ4J25N
+          role-session-name: dev-deployment
+
+      - run: npm ci
+      - run: npm run deploy
+
+  deploy-prod:
+    environment: prod #Notice here we have it set to a different environment that can (and should) have a different configuration
+    if: github.ref == 'refs/heads/master'
+    needs: [deploy-dev] #We need to successfully deploy to dev before deploying to prod
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      stage: prod
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Assume the testing pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-FZH08AJ4J25N
+          role-session-name: prod-deployment
+
+      - run: npm ci
+      - run: npm run deploy
