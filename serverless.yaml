@@ -1,6 +1,6 @@
 
 service: ${env:service, 'demo-app'} 
-frameworkVersion: '2'
+frameworkVersion: '3'
 
 plugins:
   - serverless-add-api-key
