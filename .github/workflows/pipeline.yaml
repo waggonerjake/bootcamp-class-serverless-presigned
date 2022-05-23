@@ -67,9 +67,8 @@ jobs:
           aws-region: us-east-1
           role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-FZH08AJ4J25N
           role-session-name: dev-deployment
-      
-      env:
-        stage: dev
+      - env:
+          stage: dev
       - run: npm ci
       - run: npm run deploy
 
