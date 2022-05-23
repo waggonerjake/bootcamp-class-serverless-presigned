@@ -6,7 +6,7 @@ on:
       - 'master'
       - 'feature**'
 env:
-  bucketname: jwaggon-bootcamp-2022-bucket1
+  bucketname: jwaggon-bootcamp-2022-bucket
 
 jobs:
   test:
