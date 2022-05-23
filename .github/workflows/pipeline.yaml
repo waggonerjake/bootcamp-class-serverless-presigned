@@ -28,7 +28,7 @@ jobs:
       contents: read
     env:
       stage: dev
-      service: $GITHUB_HEAD_REF
+      service: ${{github.head_ref}}
     steps:
       - uses: actions/checkout@v2
 
