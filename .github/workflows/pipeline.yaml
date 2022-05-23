@@ -69,7 +69,8 @@ jobs:
           role-session-name: dev-deployment
 
       - run: npm ci
-      - run: sls deploy --stage dev
+      - run: export environment=dev
+      - run: npm run deploy
 
   # integration-test:
   #   if: github.ref == 'refs/heads/master'
