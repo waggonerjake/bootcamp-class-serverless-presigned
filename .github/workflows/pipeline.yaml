@@ -68,7 +68,7 @@ jobs:
   deploy-prod:
     environment: prod
     if: github.ref == 'refs/heads/master'
-    needs: [test]
+    needs: [deploy-dev]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
