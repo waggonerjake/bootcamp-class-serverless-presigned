@@ -67,9 +67,11 @@ jobs:
           aws-region: us-east-1
           role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-FZH08AJ4J25N
           role-session-name: dev-deployment
-
+      
+      env:
+        stage: dev
       - run: npm ci
-      - run: export environment=dev && npm run deploy
+      - run: npm run deploy
 
   # integration-test:
   #   if: github.ref == 'refs/heads/master'
