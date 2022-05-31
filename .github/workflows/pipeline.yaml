@@ -34,7 +34,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-1C7891J508OYD
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-1X8RCQXPS6A6I
           role-session-name: feature-deployment
 
       - run: npm ci
@@ -57,7 +57,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-1C7891J508OYD
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-1X8RCQXPS6A6I
           role-session-name: dev-deployment
 
       - run: npm ci
