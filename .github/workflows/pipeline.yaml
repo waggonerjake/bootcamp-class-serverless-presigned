@@ -34,7 +34,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-JU555QQWQJ9R
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-1C7891J508OYD
           role-session-name: feature-deployment
 
       - run: npm ci
@@ -57,31 +57,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-JU555QQWQJ9R
+          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-1C7891J508OYD
           role-session-name: dev-deployment
-
-      - run: npm ci
-      - run: npm run deploy
-
-  deploy-prod:
-    environment: prod
-    if: github.ref == 'refs/heads/master'
-    needs: [deploy-dev]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    env:
-      stage: prod
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Assume the testing pipeline user role
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-region: us-east-1
-          role-to-assume: arn:aws:iam::775564629368:role/github-actions-role-Role-JU555QQWQJ9R
-          role-session-name: prod-deployment
 
       - run: npm ci
       - run: npm run deploy
